@@ -47,7 +47,8 @@ ENV PATH="/app/.venv:$PATH"
 
 # Deps first for layer caching
 COPY pyproject.toml uv.lock README.md ./
-RUN uv sync --extra ${UV_EXTRA} --frozen --no-install-project
+RUN uv sync --extra ${UV_EXTRA} --frozen --no-install-project && \
+    uv pip install -U runpod
 
 # App source
 COPY . .
