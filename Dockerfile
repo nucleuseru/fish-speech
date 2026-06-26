@@ -53,9 +53,6 @@ RUN uv sync --extra ${UV_EXTRA} --frozen --no-install-project
 COPY . .
 RUN uv sync --extra ${UV_EXTRA} --frozen
 
-# fastapi is not in the project deps (project uses kui); install it for runpod.py
-RUN uv pip install fastapi
-
 # ── Runtime config ──────────────────────────────────────────
 ENV PORT=8000
 EXPOSE ${PORT}

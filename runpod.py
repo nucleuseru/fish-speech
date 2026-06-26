@@ -12,9 +12,9 @@ import pyrootutils
 # Setup root path so imports work correctly
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-from fastapi import FastAPI, HTTPException, Request, Response, JSONResponse
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
