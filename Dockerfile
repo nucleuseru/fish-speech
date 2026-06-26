@@ -55,7 +55,7 @@ RUN uv sync --extra ${UV_EXTRA} --frozen --no-install-project
 # App source
 COPY . .
 RUN uv sync --extra ${UV_EXTRA} --frozen
-RUN uv pip install -U runpod
+RUN uv pip install runpod
 
 # ── Runtime config ──────────────────────────────────────────
 ENV PORT=8000
