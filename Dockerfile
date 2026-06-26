@@ -1,13 +1,3 @@
-# Dockerfile — Minimal RunPod serverless image for Fish Speech
-#
-# Build:
-#   docker build -t fish-speech-runpod .
-#
-# Run:
-#   docker run --gpus all -p 8000:8000 fish-speech-runpod
-
-# ── Args ────────────────────────────────────────────────────
-ARG HF_TOKEN
 ARG CUDA_VER=12.9.0
 ARG UBUNTU_VER=24.04
 ARG PY_VER=3.12
@@ -42,9 +32,8 @@ COPY --from=uv-bin /uv /uvx /bin/
 WORKDIR /app
 
 # Download model weights into the image
-RUN uvx hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro
-
-RUN uv venv /app/.venv -p ${PY_VER}
+RUN uvx hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro && \
+    uv venv /app/.venv -p ${PY_VER}
 
 ENV PATH="/app/.venv:$PATH"
 
@@ -54,14 +43,11 @@ RUN uv sync --extra ${UV_EXTRA} --frozen --no-install-project
 
 # App source
 COPY . .
-RUN uv sync --extra ${UV_EXTRA} --frozen
-RUN uv pip install runpod
+RUN uv sync --extra ${UV_EXTRA} --frozen && \
+    uv pip install runpod
 
 # ── Runtime config ──────────────────────────────────────────
 ENV PORT=8000
 EXPOSE ${PORT}
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
-    CMD curl -sf http://localhost:${PORT}/ping || exit 1
 
 CMD ["uv", "run", "python", "runpod.py"]
