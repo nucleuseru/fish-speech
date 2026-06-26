@@ -7,6 +7,7 @@
 #   docker run --gpus all -p 8000:8000 fish-speech-runpod
 
 # ── Args ────────────────────────────────────────────────────
+ARG HF_TOKEN
 ARG CUDA_VER=12.9.0
 ARG UBUNTU_VER=24.04
 ARG PY_VER=3.12
@@ -19,12 +20,14 @@ FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv-bin
 # ── Stage 2: Build & run ───────────────────────────────────
 FROM nvidia/cuda:${CUDA_VER}-cudnn-runtime-ubuntu${UBUNTU_VER}
 
+ARG HF_TOKEN
 ARG PY_VER
 ARG UV_EXTRA
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    HF_TOKEN=${HF_TOKEN}
 
 # System deps — single layer, minimal set for audio + networking
 RUN apt-get update && apt-get install -y --no-install-recommends \

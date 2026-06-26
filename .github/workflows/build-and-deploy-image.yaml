@@ -31,6 +31,8 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          build-args: |
+            HF_TOKEN=${{ secrets.HF_TOKEN }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/fish-speech:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/fish-speech:${{ github.sha }}
