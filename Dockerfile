@@ -23,10 +23,10 @@ WORKDIR /app
 RUN uvx hf download fishaudio/s2-pro --local-dir checkpoints/s2-pro && \
     uv venv /app/.venv
 
-ENV PATH="/app/.venv:$PATH"
+ENV PATH="/app/.venv/bin:$PATH"
 
 COPY . .
 RUN uv pip install --no-cache-dir runpod . \
     --index https://download.pytorch.org/whl/cu129 --index https://pypi.nvidia.com
 
-CMD ["python", "-u", "runpod.py"]
+CMD ["python", "-u", "handler.py"]
