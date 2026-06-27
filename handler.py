@@ -50,43 +50,24 @@ def handler(job):
     else:
         sample_rate = engine.decoder_model.sample_rate
 
-    try:
-        if req.streaming:
-            if req.format != "wav":
-                yield {"error": "Streaming only supports WAV format"}
-                return
+    gen = inference(req, engine)
+    fake_audios = next(gen)
 
-            # Streaming generation
-            for chunk in inference(req, engine):
-                if isinstance(chunk, bytes):
-                    yield {
-                        "audio": base64.b64encode(chunk).decode("utf-8"),
-                        "format": req.format,
-                        "sample_rate": sample_rate,
-                    }
-        else:
-            # Sync generation
-            gen = inference(req, engine)
-            fake_audios = next(gen)
+    buffer = io.BytesIO()
+    sf.write(
+        buffer,
+        fake_audios,
+        sample_rate,
+        format=req.format,
+    )
 
-            buffer = io.BytesIO()
-            sf.write(
-                buffer,
-                fake_audios,
-                sample_rate,
-                format=req.format,
-            )
-
-            audio_bytes = buffer.getvalue()
-            yield {
-                "audio": base64.b64encode(audio_bytes).decode("utf-8"),
-                "format": req.format,
-                "sample_rate": sample_rate,
-            }
-    except Exception as e:
-        logger.error(f"Error in speech generation: {e}", exc_info=True)
-        yield {"error": f"Failed to generate speech: {str(e)}"}
+    audio_bytes = buffer.getvalue()
+    return {
+        "audio": base64.b64encode(audio_bytes).decode("utf-8"),
+        "format": req.format,
+        "sample_rate": sample_rate,
+    }
 
 
 if __name__ == "__main__":
-    runpod.serverless.start({"handler": handler, "return_aggregate_stream": True})
+    runpod.serverless.start({"handler": handler})
