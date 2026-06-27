@@ -1,101 +1,50 @@
-import argparse
-import base64
 import io
 import os
-import traceback
-
-import pyrootutils
+import base64
+import runpod
 import soundfile as sf
 
 from loguru import logger
-import runpod
-
 from fish_speech.utils.schema import ServeTTSRequest
 from tools.server.inference import inference_wrapper as inference
 from tools.server.model_manager import ModelManager
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="RunPod Serverless Handler for Fish Speech"
-    )
-    parser.add_argument("--mode", type=str, default="tts", choices=["tts"])
-    parser.add_argument(
-        "--llama-checkpoint-path", type=str, default="checkpoints/s2-pro"
-    )
-    parser.add_argument(
-        "--decoder-checkpoint-path",
-        type=str,
-        default="checkpoints/s2-pro/codec.pth",
-    )
-    parser.add_argument("--decoder-config-name", type=str, default="modded_dac_vq")
-    parser.add_argument("--device", type=str, default="cuda")
-    parser.add_argument("--half", action="store_true", help="Use half precision")
-    parser.add_argument(
-        "--compile",
-        action="store_true",
-        help="Compile the model for faster inference",
-    )
+model_manager = None
 
-    parsed_args, _ = parser.parse_known_args()
-    return parsed_args
-
-
-# Global model initialization at module load time
-args = parse_args()
-
-# Environment variables override CLI arguments for easier container configuration
-mode = os.getenv("MODE", args.mode)
-device = os.getenv("DEVICE", args.device)
-half = os.getenv("HALF", str(args.half)).lower() in ("true", "1", "yes")
-compile_flag = os.getenv("COMPILE", str(args.compile)).lower() in (
-    "true",
-    "1",
-    "yes",
-)
-llama_checkpoint_path = os.getenv("LLAMA_CHECKPOINT_PATH", args.llama_checkpoint_path)
+device = os.getenv("DEVICE", "cuda")
+half = os.getenv("HALF", "1") == "1"
+compile_flag = os.getenv("COMPILE", "1") == "1"
+llama_checkpoint_path = os.getenv("LLAMA_CHECKPOINT_PATH", "checkpoints/s2-pro")
 decoder_checkpoint_path = os.getenv(
-    "DECODER_CHECKPOINT_PATH", args.decoder_checkpoint_path
+    "DECODER_CHECKPOINT_PATH", "checkpoints/s2-pro/codec.pth"
 )
-decoder_config_name = os.getenv("DECODER_CONFIG_NAME", args.decoder_config_name)
-
-logger.info("Initializing ModelManager for serverless environment...")
-logger.info(
-    f"Config: mode={mode}, device={device}, half={half}, compile={compile_flag}"
-)
-logger.info(f"Paths: llama={llama_checkpoint_path}, decoder={decoder_checkpoint_path}")
-
-try:
-    model_manager = ModelManager(
-        mode=mode,
-        device=device,
-        half=half,
-        compile=compile_flag,
-        llama_checkpoint_path=llama_checkpoint_path,
-        decoder_checkpoint_path=decoder_checkpoint_path,
-        decoder_config_name=decoder_config_name,
-    )
-    logger.info("ModelManager initialized successfully!")
-except Exception as e:
-    logger.error(f"Failed to initialize ModelManager: {e}")
-    traceback.print_exc()
-    raise e
+decoder_config_name = os.getenv("DECODER_CONFIG_NAME", "modded_dac_vq")
 
 
 def handler(job):
+    global model_manager
+
+    if model_manager is None:
+        logger.info("Initializing ModelManager for serverless environment...")
+
+        model_manager = ModelManager(
+            mode="tts",
+            device=device,
+            half=half,
+            compile=compile_flag,
+            llama_checkpoint_path=llama_checkpoint_path,
+            decoder_checkpoint_path=decoder_checkpoint_path,
+            decoder_config_name=decoder_config_name,
+        )
+
+        logger.info("ModelManager initialized successfully!")
+
     job_input = job["input"]
-    try:
-        req = ServeTTSRequest(**job_input)
-    except Exception as e:
-        yield {"error": f"Invalid request schema: {str(e)}"}
-        return
+    req = ServeTTSRequest(**job_input)
 
     engine = model_manager.tts_inference_engine
-    if engine is None:
-        yield {"error": "Model is not loaded yet"}
-        return
 
-    # Get sample rate
     if hasattr(engine.decoder_model, "spec_transform"):
         sample_rate = engine.decoder_model.spec_transform.sample_rate
     else:
