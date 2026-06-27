@@ -11,7 +11,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     HF_TOKEN=${HF_TOKEN}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3-pip python3-dev git ca-certificates curl \
+    python3 python3-pip python3-dev git ca-certificates curl \
     libsox-dev ffmpeg portaudio19-dev libportaudio2 \
     build-essential cmake libasound-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
